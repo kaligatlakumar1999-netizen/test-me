@@ -2,6 +2,20 @@
 
 A website where independent personal trainers advertise themselves directly, without going through third-party platforms or gyms. Customers find a trainer, book a session for the workout they want that day, and review the trainer after the session.
 
+## Home page: run the marathon
+
+The home page (`/`) is a scrolling story inspired by neal.fun's *The Deep Sea*. Scrolling runs you from **0 to 42.195 km**. A meter in the corner tracks the distance, the race clock (starting at 5:00 AM) and your race stage, and the sky moves from pre-dawn to sunrise. On the way you see:
+
+1. **What FitDirect offers:** book the person rather than the platform, choose today's workout, zero commission, verified reviews.
+2. **The coaches:** each trainer appears at a km marker. The featured coach, Kumar K, comes first with a full athlete record: Strava stats, personal bests, marathons, coaching and sport.
+3. **How a session works**, then the **finish line**.
+
+The searchable directory is at `/trainers`.
+
+## Kumar K's profile
+
+Kumar's profile data is in [`src/profiles/kumar.js`](src/profiles/kumar.js). **The stats, PBs and races in that file are placeholders.** Replace them with real numbers and run `npm run seed` again. You can also log in as `kumar@example.com` and edit everything under **My business → Athlete record**.
+
 ## Features
 
 **For customers**
@@ -13,6 +27,7 @@ A website where independent personal trainers advertise themselves directly, wit
 
 **For trainers**
 - Free profile: headline, bio, city and area, price, experience, certifications, photo, Instagram, workout types and where you train.
+- Optional **athlete record**: Strava link and all-time stats, PBs (5K / 10K / half / full), marathons and races, coaching experience and sports.
 - The profile stays hidden until you tick "Publish". You must fill in the key fields before it can be published.
 - Weekly availability windows, which the site turns into bookable 1-hour slots.
 - Business dashboard: confirm or decline requests, mark sessions completed, and see your rating, upcoming sessions and earnings.
@@ -24,13 +39,13 @@ Requires Node.js 22.13 or later. The app uses Node's built-in SQLite, so you don
 
 ```bash
 npm install
-npm run seed    # optional: resets the DB and adds 6 sample trainers, customers and reviews
+npm run seed    # optional: resets the DB and adds Kumar K plus 6 sample trainers, customers and reviews
 npm start       # http://localhost:3000
 npm test
 ```
 
 Sample logins after seeding (password `password123`):
-- Trainer: `arjun@example.com`, `priya@example.com`, …
+- Trainer: `kumar@example.com`, `arjun@example.com`, `priya@example.com`, …
 - Customer: `ananya@example.com`, `karan@example.com`, …
 
 Set `PORT` and `DB_FILE` to change the port or the database location (default `data/fitdirect.db`). Set `NODE_ENV=production` behind HTTPS so session cookies are marked `Secure`.
@@ -42,11 +57,14 @@ src/app.js      Express app: REST API (auth, trainers, availability, bookings, r
 src/db.js       SQLite schema and list of workout types
 src/server.js   Entry point
 src/seed.js     Sample data
-public/         Frontend (plain HTML/CSS/JS): index, trainer, login, dashboard
+src/profiles/   Featured trainer profiles used by the seed script
+public/         Frontend (plain HTML/CSS/JS): index (scroll story), trainers (search), trainer, login, dashboard
 test/           API tests (node:test)
 ```
 
 ## Ideas for next steps
+- Connect Strava through its API (OAuth) so stats update automatically instead of being typed in
+- Carry the dark, premium look of the home page through to the profile and booking pages
 - Online payments and deposits (e.g. Razorpay or Stripe), plus cancellation policies
 - Email and SMS notifications for booking requests and confirmations
 - Photo upload instead of a photo URL, and a gallery of before/after results

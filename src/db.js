@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS trainers (
   certifications TEXT NOT NULL DEFAULT '',
   session_modes TEXT NOT NULL DEFAULT '["In person"]',
   workout_types TEXT NOT NULL DEFAULT '[]',
+  athlete TEXT NOT NULL DEFAULT '{}',
+  featured INTEGER NOT NULL DEFAULT 0,
   published INTEGER NOT NULL DEFAULT 0
 );
 
@@ -92,6 +94,10 @@ function openDb(file) {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // Columns added after the first release.
+  const cols = db.prepare('PRAGMA table_info(trainers)').all().map((c) => c.name);
+  if (!cols.includes('athlete')) db.exec(`ALTER TABLE trainers ADD COLUMN athlete TEXT NOT NULL DEFAULT '{}'`);
+  if (!cols.includes('featured')) db.exec('ALTER TABLE trainers ADD COLUMN featured INTEGER NOT NULL DEFAULT 0');
   return db;
 }
 

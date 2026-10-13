@@ -93,6 +93,50 @@ function safeUrl(value, field) {
   return u.toString();
 }
 
+const PB_DISTANCES = ['5K', '10K', 'Half marathon', 'Marathon'];
+const ATHLETE_STATS = ['totalKm', 'runs', 'elevationM', 'longestKm'];
+
+// Validates a trainer's athlete record (Strava stats, PBs, races, coaching, sports).
+function cleanAthlete(input) {
+  if (input === undefined || input === null) return {};
+  if (typeof input !== 'object' || Array.isArray(input)) throw new HttpError(400, 'athlete must be an object');
+  const list = (value, max, field, each) => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) throw new HttpError(400, `${field} must be a list`);
+    if (value.length > max) throw new HttpError(400, `${field} can have at most ${max} entries`);
+    return value.map(each).filter(Boolean);
+  };
+  const stats = {};
+  for (const k of ATHLETE_STATS) {
+    const v = input.stats?.[k];
+    if (v !== undefined && v !== null && v !== '') {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0 || n > 10_000_000) throw new HttpError(400, `stats.${k} must be a positive number`);
+      stats[k] = Math.round(n * 10) / 10;
+    }
+  }
+  const pbs = {};
+  for (const d of PB_DISTANCES) {
+    const v = str(input.pbs?.[d], 12, `pbs.${d}`);
+    if (v) {
+      if (!/^\d{1,2}(:\d{2}){1,2}$/.test(v)) throw new HttpError(400, `${d} PB must look like 21:45 or 3:42:10`);
+      pbs[d] = v;
+    }
+  }
+  return {
+    stravaUrl: safeUrl(input.stravaUrl, 'stravaUrl'),
+    stats,
+    pbs,
+    races: list(input.races, 40, 'races', (r) => {
+      const name = str(r?.name, 100, 'race name');
+      if (!name) return null;
+      return { year: str(String(r.year ?? ''), 4, 'race year'), name, time: str(r.time, 12, 'race time') };
+    }),
+    coaching: list(input.coaching, 20, 'coaching', (c) => str(c, 160, 'coaching entry') || null),
+    sports: list(input.sports, 20, 'sports', (c) => str(c, 160, 'sports entry') || null),
+  };
+}
+
 // ---------- app ----------
 
 function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
@@ -166,6 +210,8 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
       certifications: row.certifications,
       sessionModes: JSON.parse(row.session_modes),
       workoutTypes: JSON.parse(row.workout_types),
+      athlete: JSON.parse(row.athlete || '{}'),
+      featured: !!row.featured,
       published: !!row.published,
       avgRating: row.avg_rating,
       reviewCount: row.review_count,
@@ -262,7 +308,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
       .prepare(`SELECT DISTINCT city FROM trainers WHERE published = 1 AND city != '' ORDER BY city`)
       .all()
       .map((r) => r.city);
-    res.json({ workoutTypes: WORKOUT_TYPES, sessionModes: SESSION_MODES, cities });
+    res.json({ workoutTypes: WORKOUT_TYPES, sessionModes: SESSION_MODES, pbDistances: PB_DISTANCES, cities });
   });
 
   app.get('/api/trainers', (req, res) => {
@@ -294,6 +340,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
         price_desc: 't.price_per_session DESC',
         experience: 't.years_experience DESC',
         reviews: 'review_count DESC',
+        featured: 't.featured DESC, avg_rating DESC, review_count DESC',
       }[req.query.sort] || 'avg_rating DESC, review_count DESC';
     const rows = db.prepare(`${ratingSql} WHERE ${where.join(' AND ')} ORDER BY ${order}, u.name`).all(...params);
     res.json({ trainers: rows.map((r) => shapeTrainer(r)) });
@@ -357,6 +404,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
     const workoutTypes = Array.isArray(b.workoutTypes) ? [...new Set(b.workoutTypes)] : [];
     if (workoutTypes.some((w) => !WORKOUT_TYPES.includes(w))) throw new HttpError(400, 'Unknown workout type');
     const sessionModes = Array.isArray(b.sessionModes) ? [...new Set(b.sessionModes)] : [];
+    const athlete = cleanAthlete(b.athlete);
     if (sessionModes.some((m) => !SESSION_MODES.includes(m))) throw new HttpError(400, 'Unknown session mode');
     const profile = {
       name: str(b.name, 80, 'name'),
@@ -384,7 +432,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
     db.prepare('UPDATE users SET name = ? WHERE id = ?').run(profile.name, req.user.id);
     db.prepare(
       `UPDATE trainers SET headline = ?, bio = ?, city = ?, area = ?, price_per_session = ?, years_experience = ?,
-         photo_url = ?, phone = ?, instagram = ?, certifications = ?, session_modes = ?, workout_types = ?, published = ?
+         photo_url = ?, phone = ?, instagram = ?, certifications = ?, session_modes = ?, workout_types = ?, athlete = ?, published = ?
        WHERE user_id = ?`,
     ).run(
       profile.headline,
@@ -399,6 +447,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
       profile.certifications,
       JSON.stringify(sessionModes.length ? sessionModes : ['In person']),
       JSON.stringify(workoutTypes),
+      JSON.stringify(athlete),
       profile.published ? 1 : 0,
       req.user.id,
     );

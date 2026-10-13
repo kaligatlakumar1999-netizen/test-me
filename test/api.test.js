@@ -4,11 +4,12 @@ const { createApp, localDateString } = require('../src/app');
 
 let server;
 let base;
+let app;
 // Fixed "now": a Wednesday morning, so availability and slot maths are deterministic.
 let fakeNow = new Date(2026, 9, 14, 8, 0);
 
 before(async () => {
-  const app = createApp({ dbFile: ':memory:', now: () => fakeNow });
+  app = createApp({ dbFile: ':memory:', now: () => fakeNow });
   await new Promise((resolve) => {
     server = app.listen(0, resolve);
   });
@@ -214,4 +215,52 @@ test('login and logout', async () => {
   assert.equal((await c('/api/me')).body.user.role, 'customer');
   await c('/api/auth/logout', { method: 'POST' });
   assert.equal((await c('/api/me')).body.user, null);
+});
+
+test('athlete record is validated and shown on the profile', async () => {
+  const base = {
+    name: 'Tara Trainer', headline: 'Strength & yoga', city: 'Pune', pricePerSession: 1000,
+    workoutTypes: ['Strength Training', 'Yoga'], published: true,
+  };
+  let r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { pbs: { Marathon: 'fast' } } } });
+  assert.equal(r.status, 400);
+  r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { stats: { totalKm: -5 } } } });
+  assert.equal(r.status, 400);
+  r = await trainer('/api/me/trainer-profile', {
+    method: 'PUT',
+    body: {
+      ...base,
+      athlete: {
+        stravaUrl: 'https://www.strava.com/athletes/123',
+        stats: { totalKm: '1234.56', runs: 300, elevationM: '' },
+        pbs: { '5K': '21:45', Marathon: '3:42:10', Unknown: '1:00' },
+        races: [{ year: 2025, name: 'Pune Half', time: '1:45:00' }, { name: '' }],
+        coaching: ['Run club lead', ''],
+        sports: ['Football'],
+      },
+    },
+  });
+  assert.equal(r.status, 200, r.body.error);
+  const { athlete } = (await client()(`/api/trainers/${trainerId}`)).body.trainer;
+  assert.deepEqual(athlete.stats, { totalKm: 1234.6, runs: 300 });
+  assert.deepEqual(athlete.pbs, { '5K': '21:45', Marathon: '3:42:10' });
+  assert.deepEqual(athlete.races, [{ year: '2025', name: 'Pune Half', time: '1:45:00' }]);
+  assert.deepEqual(athlete.coaching, ['Run club lead']);
+});
+
+test('featured sort puts featured trainers first', async () => {
+  const other = await client()('/api/auth/signup', {
+    method: 'POST',
+    body: { name: 'Zed Coach', email: 'zed@example.com', password: 'password123', role: 'trainer' },
+  });
+  const zedId = other.body.user.id;
+  app.locals.db
+    .prepare(`UPDATE trainers SET published = 1, headline = 'x', city = 'Pune', price_per_session = 1, workout_types = '["Yoga"]' WHERE user_id = ?`)
+    .run(zedId);
+  // Tara has a review, so she leads by rating until Zed is featured.
+  assert.equal((await client()('/api/trainers?sort=featured')).body.trainers[0].id, trainerId);
+  app.locals.db.prepare('UPDATE trainers SET featured = 1 WHERE user_id = ?').run(zedId);
+  const { trainers } = (await client()('/api/trainers?sort=featured')).body;
+  assert.deepEqual(trainers.map((t) => t.id), [zedId, trainerId]);
+  assert.equal(trainers[0].featured, true);
 });

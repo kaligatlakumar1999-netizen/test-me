@@ -75,7 +75,7 @@ form.addEventListener('submit', async (e) => {
     const next = params.get('next');
     // Only follow same-site relative redirects.
     if (next && /^\/(?![/\\])/.test(next)) location.href = next;
-    else location.href = user.role === 'trainer' && mode === 'signup' ? '/dashboard?welcome=1' : user.role === 'trainer' ? '/dashboard' : '/';
+    else location.href = user.role === 'trainer' && mode === 'signup' ? '/dashboard?welcome=1' : user.role === 'trainer' ? '/dashboard' : '/trainers';
   } catch (err) {
     showAlert(document.getElementById('alert'), err.message);
   }

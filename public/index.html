@@ -3,133 +3,354 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FitDirect — Book independent personal trainers</title>
-<meta name="description" content="Find and book independent personal trainers directly. No gym membership, no middleman.">
+<title>FitDirect: your coach, not the gym's</title>
+<meta name="description" content="Book independent personal trainers directly. No gym membership, no middleman, no commission. Scroll the marathon to meet the coaches.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/story.css">
 </head>
-<body>
-<nav class="nav"><div class="container">
+<body class="story">
+<div class="stars" aria-hidden="true"></div>
+<div class="sun" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="snav">
   <a class="brand" href="/">Fit<span>Direct</span></a>
-  <div class="nav-links" id="nav-links"></div>
-</div></nav>
+  <nav class="snav-links" id="snav-links">
+    <a class="hide-sm" href="/trainers">Find trainers</a>
+    <a href="/login">Log in</a>
+    <a class="cta" href="/login?mode=signup&role=trainer">I'm a trainer</a>
+  </nav>
+</header>
 
-<main class="container">
-  <section class="hero">
-    <h1>Train with the coach, <em>not the gym.</em></h1>
-    <p>Book independent personal trainers directly for exactly the workout you want today — strength, yoga, HIIT, boxing and more. Real reviews from real clients.</p>
-    <div class="value-props">
-      <div><strong>No membership</strong>Pay per session, straight to your trainer.</div>
-      <div><strong>Verified reviews</strong>Only clients who actually trained can review.</div>
-      <div><strong>Pick today's workout</strong>Choose the session type when you book.</div>
+<div class="road" id="road" aria-hidden="true"></div>
+<div class="runner" aria-hidden="true"></div>
+
+<div class="meter" aria-hidden="true">
+  <div class="meter-km"><span id="km">0.0</span><small>KM</small></div>
+  <div class="meter-sub"><b id="clock">5:00 AM</b> · <span id="stage">Start line</span></div>
+  <div class="meter-bar"><span id="bar"></span></div>
+</div>
+
+<main>
+  <!-- KM 0: what this is -->
+  <section class="leg hero-leg">
+    <div class="eyebrow reveal"><span>5:00 AM</span><span class="dot"></span><span class="dim">Start line</span></div>
+    <h1 class="display reveal d1">Your coach.<br><em>Not</em> the gym's.</h1>
+    <p class="lede reveal d2">FitDirect is where independent personal trainers run their own business. Find a coach, pick the workout you want today and book a session with them directly. No membership, no app taking a cut, and every review comes from someone who actually trained.</p>
+    <div class="hero-actions reveal d3">
+      <a class="pill-btn solid" href="#coaches">Meet the coaches ↓</a>
+      <a class="pill-btn" href="/trainers">Search all trainers</a>
     </div>
-
-    <form class="search card" id="search">
-      <div class="field">
-        <label for="q">Search</label>
-        <input id="q" name="q" placeholder="Name, neighbourhood, speciality…">
-      </div>
-      <div class="field">
-        <label for="workout">Workout</label>
-        <select id="workout" name="workout"><option value="">Any workout</option></select>
-      </div>
-      <div class="field">
-        <label for="city">City</label>
-        <select id="city" name="city"><option value="">Any city</option></select>
-      </div>
-      <div class="field">
-        <label for="sort">Sort by</label>
-        <select id="sort" name="sort">
-          <option value="">Top rated</option>
-          <option value="reviews">Most reviewed</option>
-          <option value="price_asc">Price: low to high</option>
-          <option value="price_desc">Price: high to low</option>
-          <option value="experience">Most experienced</option>
-        </select>
-      </div>
-    </form>
-    <div class="chips" id="chips"></div>
+    <div class="scroll-cue reveal d3"><i></i>Scroll to run 42.195 km</div>
   </section>
 
-  <div class="results-head">
-    <h2 id="results-title" style="margin:0">Trainers</h2>
-  </div>
-  <div class="grid" id="results"></div>
-</main>
+  <!-- What we offer -->
+  <section class="leg" id="offer">
+    <div class="eyebrow reveal" data-km-label><span class="km-at"></span><span class="dot"></span><span class="dim">Warming up</span></div>
+    <h2 class="title reveal">What you get when you<br><em>cut out the middleman.</em></h2>
 
-<footer><div class="container">FitDirect — trainers keep their clients and their earnings. Are you a trainer? <a href="/login?mode=signup&role=trainer">Create your free profile</a>.</div></footer>
+    <div class="promises">
+      <article class="promise reveal">
+        <div class="num">01</div>
+        <div>
+          <h3>Book the person, not the platform.</h3>
+          <p>Every trainer here runs their own profile, prices and hours. You book them directly, and they don't answer to a gym chain or an aggregator.</p>
+        </div>
+      </article>
+      <article class="promise reveal">
+        <div class="num">02</div>
+        <div>
+          <h3>Choose today's workout.</h3>
+          <p>Strength, running, yoga, HIIT, boxing, mobility and more. When you book, you pick exactly what you want to train that day, and your coach plans the session around it.</p>
+        </div>
+      </article>
+      <article class="promise reveal">
+        <div class="num">03</div>
+        <div>
+          <h3>Zero commission. Pay per session.</h3>
+          <p>There's no membership and no lock-in. You pay your trainer for the session, and the trainer keeps 100% of it.</p>
+        </div>
+      </article>
+      <article class="promise reveal">
+        <div class="num">04</div>
+        <div>
+          <h3>Reviews you can trust.</h3>
+          <p>Only customers who booked a trainer and finished the session can leave a review, one per session. Ratings come from real clients, not from marketing.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- The coaches -->
+  <section class="leg" id="coaches">
+    <div class="eyebrow reveal" data-km-label><span class="km-at"></span><span class="dot"></span><span class="dim">Into the rhythm</span></div>
+    <h2 class="title reveal">Meet the coaches<br><em>along the route.</em></h2>
+    <p class="lede reveal">Each one is an independent trainer you can book directly.</p>
+    <div id="coach-list"></div>
+  </section>
+
+  <!-- How it works -->
+  <section class="leg" id="how">
+    <div class="eyebrow reveal" data-km-label><span class="km-at"></span><span class="dot"></span><span class="dim">Final stretch</span></div>
+    <h2 class="title reveal">One session.<br><em>Three steps.</em></h2>
+    <div class="steps">
+      <div class="panel step reveal"><div class="k">i.</div><h3>Pick a coach</h3><p>Filter by workout, city and price. Read their record and real reviews.</p></div>
+      <div class="panel step reveal d1"><div class="k">ii.</div><h3>Book today's workout</h3><p>Choose the session type, a date and an open hour. Your coach confirms, and you get their number.</p></div>
+      <div class="panel step reveal d2"><div class="k">iii.</div><h3>Train, then review</h3><p>Show up, sweat, and pay your coach directly. Then leave a review that helps the next runner.</p></div>
+    </div>
+  </section>
+
+  <!-- KM 42.195 -->
+  <section class="leg finish-leg">
+    <div class="tape reveal" aria-hidden="true"></div>
+    <div class="eyebrow reveal"><span>42.195 km</span><span class="dot"></span><span class="dim">Finish line</span></div>
+    <h2 class="display reveal">You made it.<br><em>Now go train.</em></h2>
+    <div class="hero-actions reveal">
+      <a class="pill-btn solid" href="/trainers">Find your coach</a>
+      <a class="pill-btn" href="/login?mode=signup&role=trainer">I'm a trainer: list me for free</a>
+    </div>
+  </section>
+  <div class="foot">FitDirect: independent trainers keep their clients and 100% of their earnings.</div>
+</main>
 
 <script src="/js/common.js"></script>
 <script>
-const form = document.getElementById('search');
-const results = document.getElementById('results');
-const chips = document.getElementById('chips');
-const params = new URLSearchParams(location.search);
+const MARATHON_KM = 42.195;
+const START_MIN = 5 * 60;        // the gun goes at 5:00 AM
+const PACE_MIN_PER_KM = 6;       // a steady 6:00/km
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function renderChips() {
-  const active = form.workout.value;
-  chips.innerHTML = ['', ...[...form.workout.options].slice(1).map((o) => o.value)]
-    .map((w) => `<button type="button" class="chip ${w === active ? 'active' : ''}" data-w="${esc(w)}">${esc(w || 'All')}</button>`)
-    .join('');
+// Sky colour by progress: pre-dawn navy → indigo → violet dawn → ember sunrise → warm dusk at the finish.
+const SKY = [
+  [0.00, [7, 11, 24]],
+  [0.22, [16, 22, 52]],
+  [0.45, [38, 28, 72]],
+  [0.65, [74, 34, 66]],
+  [0.82, [92, 40, 34]],
+  [1.00, [26, 14, 10]],
+];
+const STAGES = [
+  [0, 'Start line'], [2, 'Warming up'], [10, 'Into the rhythm'], [21.1, 'Halfway'],
+  [30, 'The wall'], [35, 'Final stretch'], [42, 'Finish line'],
+];
+
+function mix(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
+function skyAt(p) {
+  for (let i = 1; i < SKY.length; i++) {
+    if (p <= SKY[i][0]) {
+      const [p0, c0] = SKY[i - 1], [p1, c1] = SKY[i];
+      return mix(c0, c1, (p - p0) / (p1 - p0));
+    }
+  }
+  return SKY[SKY.length - 1][1];
+}
+function clockAt(km) {
+  const m = Math.round(START_MIN + km * PACE_MIN_PER_KM);
+  const h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0');
+  return `${((h + 11) % 12) + 1}:${mm} ${h < 12 ? 'AM' : 'PM'}`;
+}
+function stageAt(km) { return STAGES.filter(([k]) => km >= k).pop()[1]; }
+
+const els = {
+  km: document.getElementById('km'), clock: document.getElementById('clock'),
+  stage: document.getElementById('stage'), bar: document.getElementById('bar'), road: document.getElementById('road'),
+};
+let maxScroll = 1;
+
+function kmAtScroll(y) { return Math.min(MARATHON_KM, Math.max(0, (y / maxScroll) * MARATHON_KM)); }
+// The runner sits at the middle of the viewport, so a point on the page is "reached" when it crosses the middle.
+function kmAtDocY(y) { return kmAtScroll(y - innerHeight / 2); }
+
+const snav = document.querySelector('.snav');
+function onScroll() {
+  const y = scrollY;
+  snav.classList.toggle('solid', y > 40);
+  const p = Math.min(1, Math.max(0, y / maxScroll));
+  const km = p * MARATHON_KM;
+  els.km.textContent = km >= MARATHON_KM - 0.01 ? '42.195' : km.toFixed(1);
+  els.clock.textContent = clockAt(km);
+  els.stage.textContent = stageAt(km);
+  els.bar.style.width = `${p * 100}%`;
+  const [r, g, b] = skyAt(p);
+  const s = document.body.style;
+  s.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+  s.setProperty('--sky-solid', `rgb(${Math.max(0, r - 6)}, ${Math.max(0, g - 6)}, ${Math.max(0, b - 6)})`);
+  s.setProperty('--stars', Math.max(0, 0.75 - p * 1.6).toFixed(3));
+  s.setProperty('--sun', Math.max(0, Math.min(1, (p - 0.4) * 2.6)).toFixed(3));
+  s.setProperty('--sun-rise', Math.max(0, Math.min(1, (p - 0.4) * 1.8)).toFixed(3));
 }
 
-chips.addEventListener('click', (e) => {
-  const b = e.target.closest('.chip');
-  if (!b) return;
-  form.workout.value = b.dataset.w;
-  search();
-});
+// Lay the km markers along the road and label each section with the km where you reach it.
+function layout() {
+  const docH = document.documentElement.scrollHeight;
+  maxScroll = Math.max(1, docH - innerHeight);
+  els.road.style.height = `${docH}px`;
+  els.road.innerHTML = '';
+  const marks = [];
+  for (let k = 1; k <= 42; k++) marks.push(k);
+  marks.push(21.0975, MARATHON_KM);
+  for (const k of marks) {
+    const major = k % 5 === 0 || k === 21.0975 || k === MARATHON_KM;
+    const label = k === 21.0975 ? 'HALF' : k === MARATHON_KM ? 'FINISH' : `${k} KM`;
+    if (k === 21 || k === 42) continue; // make room for HALF / FINISH
+    const el = document.createElement('div');
+    el.className = `km-mark${major ? ' major' : ''}`;
+    el.style.top = `${(k / MARATHON_KM) * maxScroll + innerHeight / 2}px`;
+    el.textContent = label;
+    els.road.appendChild(el);
+  }
+  document.querySelectorAll('[data-km-label]').forEach((el) => {
+    const top = el.getBoundingClientRect().top + scrollY;
+    el.querySelector('.km-at').textContent = `KM ${kmAtDocY(top).toFixed(1)}`;
+  });
+  onScroll();
+}
 
-async function search() {
-  renderChips();
-  const qs = new URLSearchParams();
-  for (const k of ['q', 'workout', 'city', 'sort']) if (form[k].value) qs.set(k, form[k].value);
-  history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
-  results.innerHTML = '<div class="empty">Loading…</div>';
-  try {
-    const { trainers } = await api(`/api/trainers?${qs}`);
-    document.getElementById('results-title').textContent =
-      `${trainers.length} trainer${trainers.length === 1 ? '' : 's'}${form.workout.value ? ` for ${form.workout.value}` : ''}`;
-    if (!trainers.length) {
-      results.innerHTML = '<div class="empty card" style="grid-column:1/-1">No trainers match yet — try a different workout or city.</div>';
-      return;
-    }
-    results.innerHTML = trainers.map((t) => `
-      <a class="card tcard" href="/trainer?id=${t.id}">
-        ${photo(t, 'tcard-photo')}
-        <div class="tcard-body">
-          <div class="tcard-top">
-            <h3>${esc(t.name)}</h3>
-            ${t.reviewCount ? `<span>${stars(t.avgRating)} <small class="muted">${t.avgRating} (${t.reviewCount})</small></span>` : '<span class="pill">New</span>'}
-          </div>
-          <p class="headline">${esc(t.headline)}</p>
-          <div class="muted" style="font-size:14px">📍 ${esc([t.area, t.city].filter(Boolean).join(', '))} · ${t.yearsExperience} yrs exp</div>
-          <div class="pills">${t.workoutTypes.map((w) => `<span class="pill ${w === form.workout.value ? 'pill-accent' : ''}">${esc(w)}</span>`).join('')}</div>
-          <div class="tcard-foot">
-            <span class="price">${money(t.pricePerSession)} <small>/ session</small></span>
-            <span class="btn btn-primary btn-sm">Book</span>
+// Fade things in as you reach them; count stats up.
+function countUp(el) {
+  const target = Number(el.dataset.count);
+  const fmt = (n) => Math.round(n).toLocaleString('en-IN');
+  if (reduceMotion) { el.textContent = fmt(target); return; }
+  const t0 = performance.now(), dur = 1400;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = fmt(target * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    e.target.classList.add('in');
+    e.target.querySelectorAll('[data-count]').forEach(countUp);
+    io.unobserve(e.target);
+  }
+}, { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
+function observe(root = document) { root.querySelectorAll('.reveal:not(.in)').forEach((el) => io.observe(el)); }
+
+// ---------- coaches ----------
+
+function portrait(t) {
+  return t.photoUrl
+    ? `<img class="portrait" src="${esc(t.photoUrl)}" alt="${esc(t.name)}" loading="lazy" data-initials="${initials(t.name)}" onerror="photoFallback(this)">`
+    : `<div class="portrait" aria-hidden="true">${initials(t.name)}</div>`;
+}
+
+function athleteRecord(t) {
+  const a = t.athlete || {};
+  const st = a.stats || {};
+  const pbs = a.pbs || {};
+  const parts = [];
+  const statDefs = [
+    ['totalKm', 'Total distance', 'km'], ['runs', 'Activities', ''],
+    ['elevationM', 'Elevation gained', 'm'], ['longestKm', 'Longest run', 'km'],
+  ].filter(([k]) => st[k] !== undefined);
+  if (statDefs.length) {
+    parts.push(`
+      <div class="panel reveal">
+        <div class="panel-head">
+          <p class="panel-title">All-time running</p>
+          ${a.stravaUrl ? `<a class="strava-tag" href="${esc(a.stravaUrl)}" target="_blank" rel="noopener noreferrer">Follow on Strava ↗</a>` : ''}
+        </div>
+        <div class="stat-grid">${statDefs.map(([k, label, unit]) => `
+          <div><div class="stat-v"><span data-count="${st[k]}">0</span>${unit ? `<small>${unit}</small>` : ''}</div><div class="stat-l">${label}</div></div>`).join('')}
+        </div>
+      </div>`);
+  }
+  const pbList = Object.entries(pbs);
+  if (pbList.length) {
+    parts.push(`
+      <div class="panel reveal">
+        <div class="panel-head"><p class="panel-title">Personal bests</p></div>
+        <div class="pb-grid">${pbList.map(([d, time]) => `<div class="pb"><div class="pb-d">${esc(d)}</div><div class="pb-t">${esc(time)}</div></div>`).join('')}</div>
+      </div>`);
+  }
+  const races = a.races || [];
+  const side = [];
+  if (a.coaching?.length) side.push(`<div class="panel reveal d1"><div class="panel-head"><p class="panel-title">Coaching</p></div><ul class="bullets">${a.coaching.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`);
+  if (a.sports?.length) side.push(`<div class="panel reveal d2"><div class="panel-head"><p class="panel-title">Sport</p></div><ul class="bullets">${a.sports.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`);
+  if (races.length || side.length) {
+    parts.push(`
+      <div class="two-col">
+        ${races.length ? `<div class="panel reveal"><div class="panel-head"><p class="panel-title">Marathons &amp; races</p></div>
+          <ul class="races">${races.map((r) => `<li><span class="y">${esc(r.year)}</span><span class="n">${esc(r.name)}</span><span class="t">${esc(r.time)}</span></li>`).join('')}</ul></div>` : ''}
+        <div class="stack">${side.join('')}</div>
+      </div>`);
+  }
+  return parts.length ? `<div class="record">${parts.join('')}</div>` : '';
+}
+
+function coachBlock(t, i) {
+  const featured = i === 0 && t.featured;
+  const rating = t.reviewCount
+    ? `<span><span class="star">★</span> <b>${t.avgRating}</b> · ${t.reviewCount} reviews</span>`
+    : '<span><b>New</b> on FitDirect</span>';
+  const bio = t.bio.length > 260 && !featured ? `${t.bio.slice(0, 260).replace(/\s+\S*$/, '')}…` : t.bio;
+  return `
+    <article class="coach${featured ? ' featured' : ''}" data-km-label>
+      <div class="eyebrow reveal"><span class="km-at"></span><span class="dot"></span><span class="dim">Coach ${String(i + 1).padStart(2, '0')}</span></div>
+      <div class="coach-head">
+        <div class="reveal">${portrait(t)}</div>
+        <div class="reveal d1">
+          <h3 class="coach-name">${esc(t.name)}</h3>
+          <p class="coach-line">${esc(t.headline)}</p>
+          <div class="tags">${t.workoutTypes.map((w) => `<span class="tag">${esc(w)}</span>`).join('')}</div>
+          <div class="coach-meta">
+            <span>${esc([t.area, t.city].filter(Boolean).join(', '))}</span>
+            <span><b>${t.yearsExperience}</b> yrs coaching</span>
+            <span><b>${money(t.pricePerSession)}</b> / session</span>
+            ${rating}
           </div>
         </div>
-      </a>`).join('');
-  } catch (err) {
-    results.innerHTML = `<div class="alert alert-error" style="grid-column:1/-1">${esc(err.message)}</div>`;
-  }
+      </div>
+      ${bio ? `<p class="coach-bio reveal">${esc(bio)}</p>` : ''}
+      ${featured ? athleteRecord(t) : ''}
+      <div class="coach-actions reveal">
+        <a class="pill-btn solid" href="/trainer?id=${t.id}">Book ${esc(t.name.split(' ')[0])}</a>
+        <a class="pill-btn" href="/trainer?id=${t.id}#reviews">Profile &amp; reviews</a>
+      </div>
+    </article>`;
 }
 
-let debounce;
-form.addEventListener('input', (e) => {
-  clearTimeout(debounce);
-  debounce = setTimeout(search, e.target.id === 'q' ? 250 : 0);
-});
-form.addEventListener('submit', (e) => { e.preventDefault(); search(); });
+async function loadCoaches() {
+  const list = document.getElementById('coach-list');
+  try {
+    const { trainers } = await api('/api/trainers?sort=featured');
+    list.innerHTML = trainers.length
+      ? trainers.map(coachBlock).join('')
+      : '<p class="lede" style="margin-top:10vh">The first coaches are lacing up. <a href="/login?mode=signup&role=trainer">Be one of them.</a></p>';
+  } catch (err) {
+    list.innerHTML = `<p class="lede" style="margin-top:10vh">${esc(err.message)}</p>`;
+  }
+  observe(list);
+  layout();
+}
 
-(async () => {
-  loadUser();
-  const meta = await api('/api/meta');
-  form.workout.insertAdjacentHTML('beforeend', meta.workoutTypes.map((w) => `<option>${esc(w)}</option>`).join(''));
-  form.city.insertAdjacentHTML('beforeend', meta.cities.map((c) => `<option>${esc(c)}</option>`).join(''));
-  for (const k of ['q', 'workout', 'city', 'sort']) if (params.get(k)) form[k].value = params.get(k);
-  search();
-})();
+// Show the logged-in state in the top bar.
+api('/api/me').then(({ user }) => {
+  if (!user) return;
+  document.getElementById('snav-links').innerHTML = `
+    <a class="hide-sm" href="/trainers">Find trainers</a>
+    <a class="cta" href="/dashboard">${user.role === 'trainer' ? 'My business' : 'My bookings'}</a>`;
+}).catch(() => {});
+
+let ticking = false;
+addEventListener('scroll', () => {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { onScroll(); ticking = false; });
+}, { passive: true });
+addEventListener('resize', layout);
+addEventListener('load', layout);
+if (document.fonts) document.fonts.ready.then(layout);
+
+observe();
+layout();
+loadCoaches();
 </script>
 </body>
 </html>

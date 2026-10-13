@@ -83,7 +83,7 @@ function renderNav() {
   if (!el) return;
   if (currentUser) {
     el.innerHTML = `
-      <a class="hide-sm" href="/">Find trainers</a>
+      <a class="hide-sm" href="/trainers">Find trainers</a>
       <a href="/dashboard">${currentUser.role === 'trainer' ? 'My business' : 'My bookings'}</a>
       <button class="btn btn-sm" id="logout">Log out</button>`;
     document.getElementById('logout').onclick = async () => {
@@ -92,7 +92,7 @@ function renderNav() {
     };
   } else {
     el.innerHTML = `
-      <a class="hide-sm" href="/">Find trainers</a>
+      <a class="hide-sm" href="/trainers">Find trainers</a>
       <a href="/login">Log in</a>
       <a class="btn btn-primary btn-sm" href="/login?mode=signup&role=trainer">I'm a trainer</a>`;
   }

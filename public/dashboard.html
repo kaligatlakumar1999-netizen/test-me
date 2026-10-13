@@ -18,6 +18,10 @@
 <script>
 const dash = document.getElementById('dash');
 
+function lines(text) {
+  return text.split('\n').map((l) => l.trim()).filter(Boolean);
+}
+
 function statusPill(s) {
   return `<span class="pill status-${s}">${s[0].toUpperCase() + s.slice(1)}</span>`;
 }
@@ -75,7 +79,7 @@ async function renderCustomer() {
     <div class="dash-grid">
       <div class="card">
         <h2>Upcoming</h2>
-        ${upcoming.map(row).join('') || '<div class="empty">No upcoming sessions. <a href="/">Find a trainer</a></div>'}
+        ${upcoming.map(row).join('') || '<div class="empty">No upcoming sessions. <a href="/trainers">Find a trainer</a></div>'}
       </div>
       <div class="card">
         <h2>Past &amp; cancelled</h2>
@@ -117,6 +121,7 @@ async function renderTrainer() {
     api('/api/meta'),
   ]);
   const { upcoming, past } = sortBookings(bookings);
+  const a = t.athlete || {};
   const pending = upcoming.filter((b) => b.status === 'pending').length;
   const completed = bookings.filter((b) => b.status === 'completed');
   const earned = completed.reduce((s, b) => s + b.price, 0);
@@ -203,6 +208,21 @@ async function renderTrainer() {
             <div class="field"><label for="p-photo">Photo URL</label><input id="p-photo" name="photo" type="url" value="${esc(t.photoUrl)}" placeholder="https://…"></div>
             <div class="field"><label for="p-ig">Instagram handle</label><input id="p-ig" name="ig" value="${esc(t.instagram)}" maxlength="60" placeholder="@yourhandle"></div>
           </div>
+          <h2 class="section">Athlete record</h2>
+          <p class="hint" style="margin-top:-4px">Optional. Your Strava stats, PBs, races, coaching and sport are shown on your profile and on the home page. Leave anything blank to hide it.</p>
+          <div class="field"><label for="a-strava">Strava profile URL</label><input id="a-strava" name="strava" type="url" value="${esc(a.stravaUrl || '')}" placeholder="https://www.strava.com/athletes/…"></div>
+          <div class="row">
+            <div class="field"><label for="a-km">Total distance (km)</label><input id="a-km" name="statKm" type="number" min="0" step="0.1" value="${a.stats?.totalKm ?? ''}"></div>
+            <div class="field"><label for="a-runs">Activities</label><input id="a-runs" name="statRuns" type="number" min="0" value="${a.stats?.runs ?? ''}"></div>
+            <div class="field"><label for="a-elev">Elevation gained (m)</label><input id="a-elev" name="statElev" type="number" min="0" value="${a.stats?.elevationM ?? ''}"></div>
+            <div class="field"><label for="a-long">Longest run (km)</label><input id="a-long" name="statLong" type="number" min="0" step="0.1" value="${a.stats?.longestKm ?? ''}"></div>
+          </div>
+          <div class="row">${meta.pbDistances.map((d, i) => `
+            <div class="field"><label for="pb-${i}">${esc(d)} PB</label><input id="pb-${i}" data-pb="${esc(d)}" value="${esc(a.pbs?.[d] || '')}" placeholder="${d === '5K' ? '21:45' : '1:45:00'}"></div>`).join('')}
+          </div>
+          <div class="field"><label for="a-races">Marathons &amp; races <span class="hint">one per line: Year | Race | Time</span></label><textarea id="a-races" name="races" placeholder="2025 | Tata Mumbai Marathon | 3:42:10">${esc((a.races || []).map((r) => [r.year, r.name, r.time].join(' | ')).join('\n'))}</textarea></div>
+          <div class="field"><label for="a-coach">Coaching experience <span class="hint">one per line</span></label><textarea id="a-coach" name="coaching">${esc((a.coaching || []).join('\n'))}</textarea></div>
+          <div class="field"><label for="a-sports">Sport <span class="hint">one per line</span></label><textarea id="a-sports" name="sports" style="min-height:70px">${esc((a.sports || []).join('\n'))}</textarea></div>
           <button class="btn btn-primary">Save profile</button>
         </form>
 
@@ -262,6 +282,17 @@ async function renderTrainer() {
           workoutTypes: checked('workout'),
           sessionModes: checked('mode'),
           published: f.published.checked,
+          athlete: {
+            stravaUrl: f.strava.value,
+            stats: { totalKm: f.statKm.value, runs: f.statRuns.value, elevationM: f.statElev.value, longestKm: f.statLong.value },
+            pbs: Object.fromEntries([...f.querySelectorAll('[data-pb]')].map((i) => [i.dataset.pb, i.value])),
+            races: lines(f.races.value).map((l) => {
+              const [year = '', name = '', time = ''] = l.split('|').map((x) => x.trim());
+              return name ? { year, name, time } : { year: '', name: year, time: '' };
+            }),
+            coaching: lines(f.coaching.value),
+            sports: lines(f.sports.value),
+          },
         },
       });
       showAlert(document.getElementById('profile-alert'), 'Profile saved.', 'ok');

@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { openDb } = require('./db');
 const { hashPassword, localDateString } = require('./app');
+const kumar = require('./profiles/kumar');
 
 const dbFile = process.env.DB_FILE || path.join(__dirname, '..', 'data', 'fitdirect.db');
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(dbFile + suffix, { force: true });
@@ -11,6 +12,7 @@ const db = openDb(dbFile);
 const PASSWORD = hashPassword('password123');
 
 const trainers = [
+  { ...kumar, featured: true },
   {
     name: 'Arjun Mehta', email: 'arjun@example.com', headline: 'Strength coach — build muscle the right way',
     bio: 'Former state-level powerlifter. I help beginners and intermediates get strong with clean technique, progressive overload and simple nutrition habits. Every session is planned around your goal for the day.',
@@ -63,13 +65,15 @@ const trainers = [
 
 const insUser = db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)');
 const insTrainer = db.prepare(`INSERT INTO trainers (user_id, headline, bio, city, area, price_per_session, years_experience,
-  photo_url, phone, instagram, certifications, session_modes, workout_types, published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)`);
+  photo_url, phone, instagram, certifications, session_modes, workout_types, athlete, featured, published)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`);
 const insAvail = db.prepare('INSERT INTO availability (trainer_id, weekday, start_time, end_time) VALUES (?, ?, ?, ?)');
 
 const trainerIds = trainers.map((t, i) => {
   const id = Number(insUser.run(t.email, PASSWORD, t.name, 'trainer').lastInsertRowid);
   insTrainer.run(id, t.headline, t.bio, t.city, t.area, t.price, t.years, t.photo, t.phone, t.instagram,
-    t.certifications, JSON.stringify(t.modes), JSON.stringify(t.workouts));
+    t.certifications, JSON.stringify(t.modes), JSON.stringify(t.workouts), JSON.stringify(t.athlete || {}),
+    t.featured ? 1 : 0);
   for (let day = 1; day <= 6; day++) {
     insAvail.run(id, day, i % 2 ? '07:00' : '06:00', i % 2 ? '10:00' : '09:00');
     if (day <= 5) insAvail.run(id, day, '17:00', '20:00');
@@ -93,6 +97,8 @@ const insBooking = db.prepare(`INSERT INTO bookings (trainer_id, customer_id, wo
 const insReview = db.prepare('INSERT INTO reviews (booking_id, trainer_id, customer_id, rating, comment) VALUES (?, ?, ?, ?, ?)');
 
 trainerIds.forEach((tid, i) => {
+  // Kumar is a real trainer, so he gets no invented reviews.
+  if (trainers[i].featured) return;
   const count = 2 + (i % 3);
   for (let k = 0; k < count; k++) {
     const d = new Date();
@@ -106,4 +112,4 @@ trainerIds.forEach((tid, i) => {
 });
 
 console.log(`Seeded ${trainers.length} trainers and ${customers.length} customers into ${dbFile}`);
-console.log('Log in with e.g. arjun@example.com (trainer) or ananya@example.com (customer); password: password123');
+console.log('Log in with e.g. kumar@example.com or arjun@example.com (trainer) or ananya@example.com (customer); password: password123');
