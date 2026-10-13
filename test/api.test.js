@@ -224,7 +224,9 @@ test('athlete record is validated and shown on the profile', async () => {
   };
   let r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { pbs: { Marathon: 'fast' } } } });
   assert.equal(r.status, 400);
-  r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { stats: { totalKm: -5 } } } });
+  r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { feats: [{ kind: 'distance', value: -5 }] } } });
+  assert.equal(r.status, 400);
+  r = await trainer('/api/me/trainer-profile', { method: 'PUT', body: { ...base, athlete: { feats: [{ kind: 'teleport', value: 5 }] } } });
   assert.equal(r.status, 400);
   r = await trainer('/api/me/trainer-profile', {
     method: 'PUT',
@@ -232,17 +234,26 @@ test('athlete record is validated and shown on the profile', async () => {
       ...base,
       athlete: {
         stravaUrl: 'https://www.strava.com/athletes/123',
-        stats: { totalKm: '1234.56', runs: 300, elevationM: '' },
+        feats: [
+          { kind: 'distance', value: '100', unit: 'mi', style: 'path', label: 'in one week' },
+          { kind: 'years', value: 5, activity: 'weights', label: 'lifting' },
+          { kind: 'years', value: 3, activity: 'quidditch' },
+          { kind: 'elevation', value: 1234.56, unit: 'parsecs' },
+        ],
         pbs: { '5K': '21:45', Marathon: '3:42:10', Unknown: '1:00' },
         races: [{ year: 2025, name: 'Pune Half', time: '1:45:00' }, { name: '' }],
         coaching: ['Run club lead', ''],
-        sports: ['Football'],
       },
     },
   });
   assert.equal(r.status, 200, r.body.error);
   const { athlete } = (await client()(`/api/trainers/${trainerId}`)).body.trainer;
-  assert.deepEqual(athlete.stats, { totalKm: 1234.6, runs: 300 });
+  assert.deepEqual(athlete.feats, [
+    { kind: 'distance', value: 100, label: 'in one week', unit: 'mi', style: 'path' },
+    { kind: 'years', value: 5, label: 'lifting', activity: 'weights' },
+    { kind: 'years', value: 3, label: '', activity: 'other' },
+    { kind: 'elevation', value: 1234.6, label: '', unit: 'm' },
+  ]);
   assert.deepEqual(athlete.pbs, { '5K': '21:45', Marathon: '3:42:10' });
   assert.deepEqual(athlete.races, [{ year: '2025', name: 'Pune Half', time: '1:45:00' }]);
   assert.deepEqual(athlete.coaching, ['Run club lead']);

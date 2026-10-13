@@ -94,9 +94,29 @@ function safeUrl(value, field) {
 }
 
 const PB_DISTANCES = ['5K', '10K', 'Half marathon', 'Marathon'];
-const ATHLETE_STATS = ['totalKm', 'runs', 'elevationM', 'longestKm'];
+// Feats are drawn as illustrations on the site: a road or track for distance, gear for years
+// in a sport, a mountain for elevation, a crowd for people coached.
+const FEAT_KINDS = {
+  distance: { units: ['km', 'mi'], styles: ['path', 'track'] },
+  years: { activities: ['weights', 'running', 'cricket', 'football', 'yoga', 'boxing', 'swimming', 'cycling', 'other'] },
+  elevation: { units: ['m', 'ft'] },
+  people: {},
+};
 
-// Validates a trainer's athlete record (Strava stats, PBs, races, coaching, sports).
+function cleanFeat(f) {
+  if (!f || typeof f !== 'object') throw new HttpError(400, 'Each feat must be an object');
+  const spec = FEAT_KINDS[f.kind];
+  if (!spec) throw new HttpError(400, `Unknown feat type "${f.kind}"`);
+  const value = Number(f.value);
+  if (!Number.isFinite(value) || value <= 0 || value > 10_000_000) throw new HttpError(400, 'Each feat needs a positive number');
+  const out = { kind: f.kind, value: Math.round(value * 10) / 10, label: str(f.label, 80, 'feat label') };
+  if (spec.units) out.unit = spec.units.includes(f.unit) ? f.unit : spec.units[0];
+  if (spec.styles) out.style = spec.styles.includes(f.style) ? f.style : spec.styles[0];
+  if (spec.activities) out.activity = spec.activities.includes(f.activity) ? f.activity : 'other';
+  return out;
+}
+
+// Validates a trainer's athlete record (feats, PBs, races, coaching).
 function cleanAthlete(input) {
   if (input === undefined || input === null) return {};
   if (typeof input !== 'object' || Array.isArray(input)) throw new HttpError(400, 'athlete must be an object');
@@ -106,15 +126,6 @@ function cleanAthlete(input) {
     if (value.length > max) throw new HttpError(400, `${field} can have at most ${max} entries`);
     return value.map(each).filter(Boolean);
   };
-  const stats = {};
-  for (const k of ATHLETE_STATS) {
-    const v = input.stats?.[k];
-    if (v !== undefined && v !== null && v !== '') {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < 0 || n > 10_000_000) throw new HttpError(400, `stats.${k} must be a positive number`);
-      stats[k] = Math.round(n * 10) / 10;
-    }
-  }
   const pbs = {};
   for (const d of PB_DISTANCES) {
     const v = str(input.pbs?.[d], 12, `pbs.${d}`);
@@ -125,7 +136,7 @@ function cleanAthlete(input) {
   }
   return {
     stravaUrl: safeUrl(input.stravaUrl, 'stravaUrl'),
-    stats,
+    feats: list(input.feats, 12, 'feats', cleanFeat),
     pbs,
     races: list(input.races, 40, 'races', (r) => {
       const name = str(r?.name, 100, 'race name');
@@ -133,7 +144,6 @@ function cleanAthlete(input) {
       return { year: str(String(r.year ?? ''), 4, 'race year'), name, time: str(r.time, 12, 'race time') };
     }),
     coaching: list(input.coaching, 20, 'coaching', (c) => str(c, 160, 'coaching entry') || null),
-    sports: list(input.sports, 20, 'sports', (c) => str(c, 160, 'sports entry') || null),
   };
 }
 
@@ -308,7 +318,7 @@ function createApp({ dbFile = ':memory:', now = () => new Date() } = {}) {
       .prepare(`SELECT DISTINCT city FROM trainers WHERE published = 1 AND city != '' ORDER BY city`)
       .all()
       .map((r) => r.city);
-    res.json({ workoutTypes: WORKOUT_TYPES, sessionModes: SESSION_MODES, pbDistances: PB_DISTANCES, cities });
+    res.json({ workoutTypes: WORKOUT_TYPES, sessionModes: SESSION_MODES, pbDistances: PB_DISTANCES, featKinds: FEAT_KINDS, cities });
   });
 
   app.get('/api/trainers', (req, res) => {

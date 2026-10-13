@@ -7,14 +7,30 @@ A website where independent personal trainers advertise themselves directly, wit
 The home page (`/`) is a scrolling story inspired by neal.fun's *The Deep Sea*. Scrolling runs you from **0 to 42.195 km**. A meter in the corner tracks the distance, the race clock (starting at 5:00 AM) and your race stage, and the sky moves from pre-dawn to sunrise. On the way you see:
 
 1. **What FitDirect offers:** book the person rather than the platform, choose today's workout, zero commission, verified reviews.
-2. **The coaches:** each trainer appears at a km marker. The featured coach, Kumar K, comes first with a full athlete record: Strava stats, personal bests, marathons, coaching and sport.
+2. **The coaches:** each trainer appears at a km marker. The featured coach, Kumar K, comes first with an illustrated athlete record (see below).
 3. **How a session works**, then the **finish line**.
 
 The searchable directory is at `/trainers`.
 
+## Illustrated athlete record
+
+Trainers' achievements are drawn as pictures, with the number as a caption underneath ([`public/js/feats.js`](public/js/feats.js)):
+
+| Achievement | Drawing |
+|---|---|
+| Distance (km or miles) | a winding road that draws itself, with markers along it, or a 400 m running track with a lap counter |
+| Years lifting weights | a barbell and kettlebell on the floor, plus a stack of plates, one plate per year |
+| Years in another sport | a staircase with one step per year and the sport's gear on top (running, cricket, football, yoga, boxing, swimming, cycling) |
+| Elevation | a mountain with the route to the summit, plus the total in Everests |
+| People coached | a crowd with one figure per person |
+| Personal bests | lines as long as each race (5K, 10K, half, full) |
+| Races | finisher medals with the year and time |
+
+Trainers add these under **My business → Athlete record**, with a live preview.
+
 ## Kumar K's profile
 
-Kumar's profile data is in [`src/profiles/kumar.js`](src/profiles/kumar.js). **The stats, PBs and races in that file are placeholders.** Replace them with real numbers and run `npm run seed` again. You can also log in as `kumar@example.com` and edit everything under **My business → Athlete record**.
+Kumar's profile data is in [`src/profiles/kumar.js`](src/profiles/kumar.js). **The achievements, PBs and races in that file are placeholders.** Replace them with real numbers and run `npm run seed` again. You can also log in as `kumar@example.com` and edit everything under **My business → Athlete record**.
 
 ## Features
 

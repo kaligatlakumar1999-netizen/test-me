@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/feats.css">
 <link rel="stylesheet" href="/css/story.css">
 </head>
 <body class="story">
@@ -117,6 +118,7 @@
 </main>
 
 <script src="/js/common.js"></script>
+<script src="/js/feats.js"></script>
 <script>
 const MARATHON_KM = 42.195;
 const START_MIN = 5 * 60;        // the gun goes at 5:00 AM
@@ -240,50 +242,6 @@ function portrait(t) {
     : `<div class="portrait" aria-hidden="true">${initials(t.name)}</div>`;
 }
 
-function athleteRecord(t) {
-  const a = t.athlete || {};
-  const st = a.stats || {};
-  const pbs = a.pbs || {};
-  const parts = [];
-  const statDefs = [
-    ['totalKm', 'Total distance', 'km'], ['runs', 'Activities', ''],
-    ['elevationM', 'Elevation gained', 'm'], ['longestKm', 'Longest run', 'km'],
-  ].filter(([k]) => st[k] !== undefined);
-  if (statDefs.length) {
-    parts.push(`
-      <div class="panel reveal">
-        <div class="panel-head">
-          <p class="panel-title">All-time running</p>
-          ${a.stravaUrl ? `<a class="strava-tag" href="${esc(a.stravaUrl)}" target="_blank" rel="noopener noreferrer">Follow on Strava ↗</a>` : ''}
-        </div>
-        <div class="stat-grid">${statDefs.map(([k, label, unit]) => `
-          <div><div class="stat-v"><span data-count="${st[k]}">0</span>${unit ? `<small>${unit}</small>` : ''}</div><div class="stat-l">${label}</div></div>`).join('')}
-        </div>
-      </div>`);
-  }
-  const pbList = Object.entries(pbs);
-  if (pbList.length) {
-    parts.push(`
-      <div class="panel reveal">
-        <div class="panel-head"><p class="panel-title">Personal bests</p></div>
-        <div class="pb-grid">${pbList.map(([d, time]) => `<div class="pb"><div class="pb-d">${esc(d)}</div><div class="pb-t">${esc(time)}</div></div>`).join('')}</div>
-      </div>`);
-  }
-  const races = a.races || [];
-  const side = [];
-  if (a.coaching?.length) side.push(`<div class="panel reveal d1"><div class="panel-head"><p class="panel-title">Coaching</p></div><ul class="bullets">${a.coaching.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`);
-  if (a.sports?.length) side.push(`<div class="panel reveal d2"><div class="panel-head"><p class="panel-title">Sport</p></div><ul class="bullets">${a.sports.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`);
-  if (races.length || side.length) {
-    parts.push(`
-      <div class="two-col">
-        ${races.length ? `<div class="panel reveal"><div class="panel-head"><p class="panel-title">Marathons &amp; races</p></div>
-          <ul class="races">${races.map((r) => `<li><span class="y">${esc(r.year)}</span><span class="n">${esc(r.name)}</span><span class="t">${esc(r.time)}</span></li>`).join('')}</ul></div>` : ''}
-        <div class="stack">${side.join('')}</div>
-      </div>`);
-  }
-  return parts.length ? `<div class="record">${parts.join('')}</div>` : '';
-}
-
 function coachBlock(t, i) {
   const featured = i === 0 && t.featured;
   const rating = t.reviewCount
@@ -308,7 +266,7 @@ function coachBlock(t, i) {
         </div>
       </div>
       ${bio ? `<p class="coach-bio reveal">${esc(bio)}</p>` : ''}
-      ${featured ? athleteRecord(t) : ''}
+      ${featured ? `<div class="record reveal">${FitFeats.render(t.athlete)}</div>` : ''}
       <div class="coach-actions reveal">
         <a class="pill-btn solid" href="/trainer?id=${t.id}">Book ${esc(t.name.split(' ')[0])}</a>
         <a class="pill-btn" href="/trainer?id=${t.id}#reviews">Profile &amp; reviews</a>
@@ -327,6 +285,7 @@ async function loadCoaches() {
     list.innerHTML = `<p class="lede" style="margin-top:10vh">${esc(err.message)}</p>`;
   }
   observe(list);
+  FitFeats.activate(list);
   layout();
 }
 

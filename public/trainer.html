@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trainer — FitDirect</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/feats.css">
 </head>
 <body>
 <nav class="nav"><div class="container">
@@ -17,6 +19,7 @@
 </main>
 
 <script src="/js/common.js"></script>
+<script src="/js/feats.js"></script>
 <script>
 const id = new URLSearchParams(location.search).get('id');
 const page = document.getElementById('page');
@@ -24,24 +27,8 @@ let trainer;
 let selectedSlot = null;
 
 function athleteCard(a = {}) {
-  const st = a.stats || {};
-  const stats = [['totalKm', 'Total km'], ['runs', 'Activities'], ['elevationM', 'Elevation (m)'], ['longestKm', 'Longest run (km)']]
-    .filter(([k]) => st[k] !== undefined);
-  const pbs = Object.entries(a.pbs || {});
-  const races = a.races || [];
-  if (!stats.length && !pbs.length && !races.length && !a.coaching?.length && !a.sports?.length) return '';
-  return `
-    <div class="card section">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-        <h2>Athlete record</h2>
-        ${a.stravaUrl ? `<a href="${esc(a.stravaUrl)}" target="_blank" rel="noopener noreferrer" style="color:#fc5200;font-weight:600;font-size:14px">Strava profile ↗</a>` : ''}
-      </div>
-      ${stats.length ? `<div class="stats" style="margin-bottom:16px">${stats.map(([k, l]) => `<div class="card stat"><div class="num">${Number(st[k]).toLocaleString('en-IN')}</div><div class="lbl">${l}</div></div>`).join('')}</div>` : ''}
-      ${pbs.length ? `<div class="section"><h2>Personal bests</h2><div class="pills">${pbs.map(([d, t]) => `<span class="pill pill-accent">${esc(d)} · ${esc(t)}</span>`).join('')}</div></div>` : ''}
-      ${races.length ? `<div class="section"><h2>Marathons &amp; races</h2><div class="week">${races.map((r) => `<div><span>${esc(r.year)} · ${esc(r.name)}</span><span class="muted">${esc(r.time)}</span></div>`).join('')}</div></div>` : ''}
-      ${a.coaching?.length ? `<div class="section"><h2>Coaching</h2><ul style="margin:0;padding-left:20px">${a.coaching.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
-      ${a.sports?.length ? `<div class="section"><h2>Sport</h2><div class="pills">${a.sports.map((c) => `<span class="pill">${esc(c)}</span>`).join('')}</div></div>` : ''}
-    </div>`;
+  const html = FitFeats.render(a);
+  return html ? `<div class="card section"><h2>Athlete record</h2>${html}</div>` : '';
 }
 
 function render({ trainer: t, availability, reviews, breakdown }) {
@@ -200,6 +187,7 @@ async function book(e) {
     const data = await api(`/api/trainers/${encodeURIComponent(id)}`);
     trainer = data.trainer;
     render(data);
+    FitFeats.activate(page);
     if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
   } catch (err) {
     page.innerHTML = `<div class="empty">${esc(err.message)}. <a href="/trainers">Browse trainers</a></div>`;

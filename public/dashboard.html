@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — FitDirect</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/feats.css">
+<style>
+  @media (max-width: 560px) { .feat-row { grid-template-columns: 1fr 1fr !important; } }
+  #feat-preview .feats { grid-template-columns: 1fr; }
+</style>
 </head>
 <body>
 <nav class="nav"><div class="container">
@@ -15,8 +21,50 @@
 <main class="container dash" id="dash"><div class="empty">Loading…</div></main>
 
 <script src="/js/common.js"></script>
+<script src="/js/feats.js"></script>
 <script>
 const dash = document.getElementById('dash');
+
+// Achievement rows: what kind, how much, how to draw it, and a caption.
+const FEAT_OPTIONS = {
+  distance: [['mi|path', 'miles · winding road'], ['km|path', 'km · winding road'], ['mi|track', 'miles · running track'], ['km|track', 'km · running track']],
+  years: [['weights', 'years · lifting weights'], ['running', 'years · running'], ['cricket', 'years · cricket'], ['football', 'years · football'],
+    ['yoga', 'years · yoga'], ['boxing', 'years · boxing'], ['swimming', 'years · swimming'], ['cycling', 'years · cycling'], ['other', 'years · other sport']],
+  elevation: [['m', 'metres climbed'], ['ft', 'feet climbed']],
+  people: [['', 'people coached']],
+};
+const FEAT_KIND_NAMES = { distance: 'Distance', years: 'Years in a sport', elevation: 'Elevation', people: 'People coached' };
+
+function featOption(f) {
+  if (f.kind === 'distance') return `${f.unit || 'km'}|${f.style || 'path'}`;
+  if (f.kind === 'years') return f.activity || 'other';
+  if (f.kind === 'elevation') return f.unit || 'm';
+  return '';
+}
+
+function featRow(f = { kind: 'distance', value: '', unit: 'mi', style: 'path', label: '' }) {
+  const opt = featOption(f);
+  return `
+    <div class="feat-row" style="display:grid;grid-template-columns:1fr 90px 1.3fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:center">
+      <select data-f="kind" aria-label="Type">${Object.entries(FEAT_KIND_NAMES).map(([k, n]) => `<option value="${k}" ${k === f.kind ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <input data-f="value" type="number" min="0" step="any" value="${esc(f.value)}" placeholder="100" aria-label="Amount">
+      <select data-f="opt" aria-label="Shown as">${FEAT_OPTIONS[f.kind].map(([v, n]) => `<option value="${v}" ${v === opt ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <input data-f="label" maxlength="80" value="${esc(f.label || '')}" placeholder="Caption, e.g. run in one week" aria-label="Caption">
+      <button type="button" class="btn btn-sm btn-danger" data-remove-feat aria-label="Remove">✕</button>
+    </div>`;
+}
+
+function readFeats() {
+  return [...document.querySelectorAll('#feat-rows .feat-row')].map((r) => {
+    const kind = r.querySelector('[data-f=kind]').value;
+    const opt = r.querySelector('[data-f=opt]').value;
+    const f = { kind, value: r.querySelector('[data-f=value]').value, label: r.querySelector('[data-f=label]').value };
+    if (kind === 'distance') [f.unit, f.style] = opt.split('|');
+    if (kind === 'years') f.activity = opt;
+    if (kind === 'elevation') f.unit = opt;
+    return f;
+  }).filter((f) => Number(f.value) > 0);
+}
 
 function lines(text) {
   return text.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -209,20 +257,17 @@ async function renderTrainer() {
             <div class="field"><label for="p-ig">Instagram handle</label><input id="p-ig" name="ig" value="${esc(t.instagram)}" maxlength="60" placeholder="@yourhandle"></div>
           </div>
           <h2 class="section">Athlete record</h2>
-          <p class="hint" style="margin-top:-4px">Optional. Your Strava stats, PBs, races, coaching and sport are shown on your profile and on the home page. Leave anything blank to hide it.</p>
+          <p class="hint" style="margin-top:-4px">Optional. Each achievement is drawn as a picture on your profile and the home page: distance as a road or running track, years in a sport as gear on the floor, elevation as a mountain and people coached as a crowd.</p>
           <div class="field"><label for="a-strava">Strava profile URL</label><input id="a-strava" name="strava" type="url" value="${esc(a.stravaUrl || '')}" placeholder="https://www.strava.com/athletes/…"></div>
-          <div class="row">
-            <div class="field"><label for="a-km">Total distance (km)</label><input id="a-km" name="statKm" type="number" min="0" step="0.1" value="${a.stats?.totalKm ?? ''}"></div>
-            <div class="field"><label for="a-runs">Activities</label><input id="a-runs" name="statRuns" type="number" min="0" value="${a.stats?.runs ?? ''}"></div>
-            <div class="field"><label for="a-elev">Elevation gained (m)</label><input id="a-elev" name="statElev" type="number" min="0" value="${a.stats?.elevationM ?? ''}"></div>
-            <div class="field"><label for="a-long">Longest run (km)</label><input id="a-long" name="statLong" type="number" min="0" step="0.1" value="${a.stats?.longestKm ?? ''}"></div>
-          </div>
+          <label>Achievements</label>
+          <div id="feat-rows">${(a.feats || []).map(featRow).join('')}</div>
+          <button type="button" class="btn btn-sm" id="add-feat" style="margin:4px 0 12px">+ Add achievement</button>
+          <div class="field"><label>Preview</label><div id="feat-preview" class="card" style="padding:16px"></div></div>
           <div class="row">${meta.pbDistances.map((d, i) => `
             <div class="field"><label for="pb-${i}">${esc(d)} PB</label><input id="pb-${i}" data-pb="${esc(d)}" value="${esc(a.pbs?.[d] || '')}" placeholder="${d === '5K' ? '21:45' : '1:45:00'}"></div>`).join('')}
           </div>
           <div class="field"><label for="a-races">Marathons &amp; races <span class="hint">one per line: Year | Race | Time</span></label><textarea id="a-races" name="races" placeholder="2025 | Tata Mumbai Marathon | 3:42:10">${esc((a.races || []).map((r) => [r.year, r.name, r.time].join(' | ')).join('\n'))}</textarea></div>
           <div class="field"><label for="a-coach">Coaching experience <span class="hint">one per line</span></label><textarea id="a-coach" name="coaching">${esc((a.coaching || []).join('\n'))}</textarea></div>
-          <div class="field"><label for="a-sports">Sport <span class="hint">one per line</span></label><textarea id="a-sports" name="sports" style="min-height:70px">${esc((a.sports || []).join('\n'))}</textarea></div>
           <button class="btn btn-primary">Save profile</button>
         </form>
 
@@ -244,6 +289,28 @@ async function renderTrainer() {
   const rows = document.getElementById('avail-rows');
   document.getElementById('add-window').onclick = () => rows.insertAdjacentHTML('beforeend', availRow());
   rows.addEventListener('click', (e) => { if (e.target.closest('[data-remove]')) e.target.closest('.avail-row').remove(); });
+
+  const featRows = document.getElementById('feat-rows');
+  const preview = document.getElementById('feat-preview');
+  const drawPreview = () => {
+    const feats = readFeats().map((f) => ({ ...f, value: Number(f.value) }));
+    preview.innerHTML = feats.length ? FitFeats.render({ feats }) : '<span class="hint">Add an achievement to see it drawn here.</span>';
+    FitFeats.activate(preview);
+  };
+  document.getElementById('add-feat').onclick = () => { featRows.insertAdjacentHTML('beforeend', featRow()); drawPreview(); };
+  featRows.addEventListener('click', (e) => {
+    if (e.target.closest('[data-remove-feat]')) { e.target.closest('.feat-row').remove(); drawPreview(); }
+  });
+  featRows.addEventListener('change', (e) => {
+    if (e.target.dataset.f === 'kind') {
+      const opt = e.target.closest('.feat-row').querySelector('[data-f=opt]');
+      opt.innerHTML = FEAT_OPTIONS[e.target.value].map(([v, n]) => `<option value="${v}">${n}</option>`).join('');
+    }
+    drawPreview();
+  });
+  let previewTimer;
+  featRows.addEventListener('input', () => { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 300); });
+  drawPreview();
 
   document.getElementById('avail').onsubmit = async (e) => {
     e.preventDefault();
@@ -284,14 +351,13 @@ async function renderTrainer() {
           published: f.published.checked,
           athlete: {
             stravaUrl: f.strava.value,
-            stats: { totalKm: f.statKm.value, runs: f.statRuns.value, elevationM: f.statElev.value, longestKm: f.statLong.value },
+            feats: readFeats(),
             pbs: Object.fromEntries([...f.querySelectorAll('[data-pb]')].map((i) => [i.dataset.pb, i.value])),
             races: lines(f.races.value).map((l) => {
               const [year = '', name = '', time = ''] = l.split('|').map((x) => x.trim());
               return name ? { year, name, time } : { year: '', name: year, time: '' };
             }),
             coaching: lines(f.coaching.value),
-            sports: lines(f.sports.value),
           },
         },
       });

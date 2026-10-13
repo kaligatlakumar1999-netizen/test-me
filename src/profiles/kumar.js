@@ -1,6 +1,6 @@
 // Kumar K's trainer profile, used by `npm run seed`.
 //
-// ⚠️ PLACEHOLDER VALUES: every number, race and line below is a sample so the page
+// ⚠️ PLACEHOLDER VALUES: every feat, PB, race and line below is a sample so the page
 // can be designed. Replace them with Kumar's real Strava stats and history, then
 // run `npm run seed` again. Once the site is live, Kumar can also edit all of this
 // from the dashboard ("Athlete record" section).
@@ -23,7 +23,19 @@ module.exports = {
   photo: '',
   athlete: {
     stravaUrl: 'https://www.strava.com/athletes/',
-    stats: { totalKm: 12480, runs: 1650, elevationM: 98500, longestKm: 50 },
+    // Each feat is drawn as a picture on the site:
+    //   distance → a winding road ("path") or a 400 m running track ("track")
+    //   years    → gear for the activity (weights: barbell + one plate per year)
+    //   elevation → a mountain, counted in Everests
+    //   people   → a crowd, one figure per person
+    feats: [
+      { kind: 'distance', value: 100, unit: 'mi', style: 'path', label: 'run in a single week of training' },
+      { kind: 'years', value: 5, activity: 'weights', label: 'lifting weights' },
+      { kind: 'distance', value: 12480, unit: 'km', style: 'track', label: 'logged on Strava' },
+      { kind: 'elevation', value: 98500, unit: 'm', label: 'climbed on foot' },
+      { kind: 'years', value: 10, activity: 'cricket', label: 'playing club cricket' },
+      { kind: 'people', value: 120, label: 'runners coached to their first race' },
+    ],
     pbs: { '5K': '19:52', '10K': '41:30', 'Half marathon': '1:32:45', Marathon: '3:19:08' },
     races: [
       { year: '2025', name: 'Tata Mumbai Marathon', time: '3:19:08' },
@@ -33,10 +45,9 @@ module.exports = {
       { year: '2022', name: 'Bengaluru Marathon', time: '3:52:17' },
     ],
     coaching: [
-      'Coached 120+ runners to their first 10K, half or full marathon',
       'Run club lead: Sunday long runs at Cubbon Park',
       'Couch-to-5K programmes for beginners',
+      'Marathon build-ups: 16-week plans with weekly check-ins',
     ],
-    sports: ['Distance running', 'Cricket (club level)', 'Trail running'],
   },
 };
