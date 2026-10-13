@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — FitDirect</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="nav"><div class="container">
+  <a class="brand" href="/">Fit<span>Direct</span></a>
+  <div class="nav-links" id="nav-links"></div>
+</div></nav>
+
+<main class="container">
+  <div class="card narrow">
+    <div class="tabs">
+      <button type="button" data-mode="login">Log in</button>
+      <button type="button" data-mode="signup">Sign up</button>
+    </div>
+    <div id="alert" class="hidden"></div>
+    <form id="form">
+      <div class="field signup-only">
+        <label>I want to…</label>
+        <div class="role-pick">
+          <label><input type="radio" name="role" value="customer" checked>Book trainers</label>
+          <label><input type="radio" name="role" value="trainer">Get clients as a trainer</label>
+        </div>
+      </div>
+      <div class="field signup-only">
+        <label for="name">Full name</label>
+        <input id="name" autocomplete="name" maxlength="80">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password <span class="hint signup-only">(8+ characters)</span></label>
+        <input id="password" type="password" autocomplete="current-password" required minlength="8">
+      </div>
+      <button class="btn btn-primary btn-block" id="submit">Log in</button>
+    </form>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const form = document.getElementById('form');
+let mode = params.get('mode') === 'signup' ? 'signup' : 'login';
+if (params.get('role') === 'trainer') form.querySelector('input[value="trainer"]').checked = true;
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.mode === m));
+  document.querySelectorAll('.signup-only').forEach((el) => el.classList.toggle('hidden', m !== 'signup'));
+  document.getElementById('name').required = m === 'signup';
+  document.getElementById('password').autocomplete = m === 'signup' ? 'new-password' : 'current-password';
+  document.getElementById('submit').textContent = m === 'signup' ? 'Create account' : 'Log in';
+  document.title = `${m === 'signup' ? 'Sign up' : 'Log in'} — FitDirect`;
+}
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+setMode(mode);
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = { email: form.email.value, password: form.password.value };
+  if (mode === 'signup') {
+    body.name = document.getElementById('name').value;
+    body.role = form.querySelector('input[name="role"]:checked').value;
+  }
+  try {
+    const { user } = await api(`/api/auth/${mode}`, { method: 'POST', body });
+    const next = params.get('next');
+    // Only follow same-site relative redirects.
+    if (next && /^\/(?![/\\])/.test(next)) location.href = next;
+    else location.href = user.role === 'trainer' && mode === 'signup' ? '/dashboard?welcome=1' : user.role === 'trainer' ? '/dashboard' : '/';
+  } catch (err) {
+    showAlert(document.getElementById('alert'), err.message);
+  }
+});
+
+loadUser();
+</script>
+</body>
+</html>

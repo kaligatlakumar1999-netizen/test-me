@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitDirect — Book independent personal trainers</title>
+<meta name="description" content="Find and book independent personal trainers directly. No gym membership, no middleman.">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="nav"><div class="container">
+  <a class="brand" href="/">Fit<span>Direct</span></a>
+  <div class="nav-links" id="nav-links"></div>
+</div></nav>
+
+<main class="container">
+  <section class="hero">
+    <h1>Train with the coach, <em>not the gym.</em></h1>
+    <p>Book independent personal trainers directly for exactly the workout you want today — strength, yoga, HIIT, boxing and more. Real reviews from real clients.</p>
+    <div class="value-props">
+      <div><strong>No membership</strong>Pay per session, straight to your trainer.</div>
+      <div><strong>Verified reviews</strong>Only clients who actually trained can review.</div>
+      <div><strong>Pick today's workout</strong>Choose the session type when you book.</div>
+    </div>
+
+    <form class="search card" id="search">
+      <div class="field">
+        <label for="q">Search</label>
+        <input id="q" name="q" placeholder="Name, neighbourhood, speciality…">
+      </div>
+      <div class="field">
+        <label for="workout">Workout</label>
+        <select id="workout" name="workout"><option value="">Any workout</option></select>
+      </div>
+      <div class="field">
+        <label for="city">City</label>
+        <select id="city" name="city"><option value="">Any city</option></select>
+      </div>
+      <div class="field">
+        <label for="sort">Sort by</label>
+        <select id="sort" name="sort">
+          <option value="">Top rated</option>
+          <option value="reviews">Most reviewed</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="experience">Most experienced</option>
+        </select>
+      </div>
+    </form>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="results-head">
+    <h2 id="results-title" style="margin:0">Trainers</h2>
+  </div>
+  <div class="grid" id="results"></div>
+</main>
+
+<footer><div class="container">FitDirect — trainers keep their clients and their earnings. Are you a trainer? <a href="/login?mode=signup&role=trainer">Create your free profile</a>.</div></footer>
+
+<script src="/js/common.js"></script>
+<script>
+const form = document.getElementById('search');
+const results = document.getElementById('results');
+const chips = document.getElementById('chips');
+const params = new URLSearchParams(location.search);
+
+function renderChips() {
+  const active = form.workout.value;
+  chips.innerHTML = ['', ...[...form.workout.options].slice(1).map((o) => o.value)]
+    .map((w) => `<button type="button" class="chip ${w === active ? 'active' : ''}" data-w="${esc(w)}">${esc(w || 'All')}</button>`)
+    .join('');
+}
+
+chips.addEventListener('click', (e) => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  form.workout.value = b.dataset.w;
+  search();
+});
+
+async function search() {
+  renderChips();
+  const qs = new URLSearchParams();
+  for (const k of ['q', 'workout', 'city', 'sort']) if (form[k].value) qs.set(k, form[k].value);
+  history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
+  results.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const { trainers } = await api(`/api/trainers?${qs}`);
+    document.getElementById('results-title').textContent =
+      `${trainers.length} trainer${trainers.length === 1 ? '' : 's'}${form.workout.value ? ` for ${form.workout.value}` : ''}`;
+    if (!trainers.length) {
+      results.innerHTML = '<div class="empty card" style="grid-column:1/-1">No trainers match yet — try a different workout or city.</div>';
+      return;
+    }
+    results.innerHTML = trainers.map((t) => `
+      <a class="card tcard" href="/trainer?id=${t.id}">
+        ${photo(t, 'tcard-photo')}
+        <div class="tcard-body">
+          <div class="tcard-top">
+            <h3>${esc(t.name)}</h3>
+            ${t.reviewCount ? `<span>${stars(t.avgRating)} <small class="muted">${t.avgRating} (${t.reviewCount})</small></span>` : '<span class="pill">New</span>'}
+          </div>
+          <p class="headline">${esc(t.headline)}</p>
+          <div class="muted" style="font-size:14px">📍 ${esc([t.area, t.city].filter(Boolean).join(', '))} · ${t.yearsExperience} yrs exp</div>
+          <div class="pills">${t.workoutTypes.map((w) => `<span class="pill ${w === form.workout.value ? 'pill-accent' : ''}">${esc(w)}</span>`).join('')}</div>
+          <div class="tcard-foot">
+            <span class="price">${money(t.pricePerSession)} <small>/ session</small></span>
+            <span class="btn btn-primary btn-sm">Book</span>
+          </div>
+        </div>
+      </a>`).join('');
+  } catch (err) {
+    results.innerHTML = `<div class="alert alert-error" style="grid-column:1/-1">${esc(err.message)}</div>`;
+  }
+}
+
+let debounce;
+form.addEventListener('input', (e) => {
+  clearTimeout(debounce);
+  debounce = setTimeout(search, e.target.id === 'q' ? 250 : 0);
+});
+form.addEventListener('submit', (e) => { e.preventDefault(); search(); });
+
+(async () => {
+  loadUser();
+  const meta = await api('/api/meta');
+  form.workout.insertAdjacentHTML('beforeend', meta.workoutTypes.map((w) => `<option>${esc(w)}</option>`).join(''));
+  form.city.insertAdjacentHTML('beforeend', meta.cities.map((c) => `<option>${esc(c)}</option>`).join(''));
+  for (const k of ['q', 'workout', 'city', 'sort']) if (params.get(k)) form[k].value = params.get(k);
+  search();
+})();
+</script>
+</body>
+</html>

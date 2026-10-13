@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trainer — FitDirect</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="nav"><div class="container">
+  <a class="brand" href="/">Fit<span>Direct</span></a>
+  <div class="nav-links" id="nav-links"></div>
+</div></nav>
+
+<main class="container">
+  <div id="page" class="profile"><div class="empty">Loading…</div></div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get('id');
+const page = document.getElementById('page');
+let trainer;
+let selectedSlot = null;
+
+function render({ trainer: t, availability, reviews, breakdown }) {
+  document.title = `${t.name} — FitDirect`;
+  const byDay = WEEKDAYS.map((name, i) => ({
+    name,
+    windows: availability.filter((a) => a.weekday === i).map((a) => `${fmtTime(a.start)}–${fmtTime(a.end)}`),
+  }));
+  const max = Math.max(1, ...breakdown.map((b) => b.count));
+
+  page.innerHTML = `
+    <div>
+      ${t.published ? '' : '<div class="alert alert-error">Your profile is not published yet — only you can see this page.</div>'}
+      <div class="card">
+        <div class="profile-head">
+          ${photo(t, 'profile-photo')}
+          <div style="flex:1;min-width:220px">
+            <h1>${esc(t.name)}</h1>
+            <div class="muted">${esc(t.headline)}</div>
+            <div class="facts">
+              <span>📍 ${esc([t.area, t.city].filter(Boolean).join(', '))}</span>
+              <span>🏋️ ${t.yearsExperience} yrs experience</span>
+              <span>✅ ${t.completedSessions} sessions on FitDirect</span>
+              ${t.reviewCount ? `<span>${stars(t.avgRating)} ${t.avgRating} (${t.reviewCount} reviews)</span>` : ''}
+            </div>
+            <div class="pills">${t.workoutTypes.map((w) => `<span class="pill pill-accent">${esc(w)}</span>`).join('')}</div>
+          </div>
+        </div>
+
+        <div class="section"><h2>About</h2><p class="bio">${esc(t.bio) || '<span class="muted">No bio yet.</span>'}</p></div>
+        ${t.certifications ? `<div class="section"><h2>Certifications</h2><p>${esc(t.certifications)}</p></div>` : ''}
+        <div class="section"><h2>Where we train</h2><div class="pills">${t.sessionModes.map((m) => `<span class="pill">${esc(m)}</span>`).join('')}</div></div>
+        ${t.instagram ? `<div class="section"><h2>Follow</h2><a href="https://instagram.com/${encodeURIComponent(t.instagram)}" target="_blank" rel="noopener noreferrer">@${esc(t.instagram)} on Instagram</a></div>` : ''}
+        <div class="section">
+          <h2>Weekly hours</h2>
+          <div class="week">${byDay.map((d) => `<div><span>${d.name}</span><span class="muted">${d.windows.join(', ') || 'Unavailable'}</span></div>`).join('')}</div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>Reviews</h2>
+        ${reviews.length ? `
+          <div class="rating-summary">
+            <div><div class="big-rating">${t.avgRating}</div>${stars(t.avgRating)}<div class="muted" style="font-size:13px">${t.reviewCount} verified reviews</div></div>
+            <div class="bars">${breakdown.map((b) => `
+              <div class="bar-row"><span>${b.stars}★</span><div class="bar"><span style="width:${(b.count / max) * 100}%"></span></div><span class="muted">${b.count}</span></div>`).join('')}
+            </div>
+          </div>
+          <div class="section">${reviews.map((r) => `
+            <div class="review">
+              <div class="review-meta"><span><strong>${esc(r.customerName)}</strong> · <span class="muted">${esc(r.workoutType)}</span></span><span>${stars(r.rating)}</span></div>
+              ${r.comment ? `<p>${esc(r.comment)}</p>` : ''}
+              <div class="muted" style="font-size:12px;margin-top:4px">${new Date(r.createdAt + 'Z').toLocaleDateString()}</div>
+            </div>`).join('')}
+          </div>` : '<p class="muted">No reviews yet. Book a session and be the first!</p>'}
+        <p class="hint">Only customers who booked and completed a session can leave a review.</p>
+      </div>
+    </div>
+
+    <aside class="card booking-box">
+      <div class="price" style="font-size:24px">${money(t.pricePerSession)} <small>/ 60-min session</small></div>
+      <p class="hint" style="margin-top:0">Pay your trainer directly — no platform fee.</p>
+      <div id="book-alert" class="hidden"></div>
+      <form id="book">
+        <div class="field">
+          <label for="workoutType">Today's workout</label>
+          <select id="workoutType" required>${t.workoutTypes.map((w) => `<option>${esc(w)}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label for="date">Date</label>
+          <input type="date" id="date" min="${todayIso()}" max="${todayIso(60)}" value="${todayIso()}" required>
+        </div>
+        <div class="field">
+          <label>Time</label>
+          <div class="slots" id="slots"></div>
+        </div>
+        <div class="field">
+          <label for="notes">Notes for your trainer <span class="hint">(optional)</span></label>
+          <textarea id="notes" maxlength="500" placeholder="Goals, injuries, preferred location…" style="min-height:70px"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" id="book-btn" disabled>Select a time</button>
+      </form>
+    </aside>`;
+
+  document.getElementById('date').addEventListener('change', loadSlots);
+  document.getElementById('book').addEventListener('submit', book);
+  loadSlots();
+}
+
+async function loadSlots() {
+  const slotsEl = document.getElementById('slots');
+  const date = document.getElementById('date').value;
+  selectedSlot = null;
+  updateButton();
+  if (!date) { slotsEl.innerHTML = ''; return; }
+  slotsEl.innerHTML = '<span class="muted">Loading…</span>';
+  try {
+    const { slots } = await api(`/api/trainers/${id}/slots?date=${date}`);
+    slotsEl.innerHTML = slots.length
+      ? slots.map((s) => `<button type="button" class="btn slot" data-t="${s}">${fmtTime(s)}</button>`).join('')
+      : '<span class="muted" style="grid-column:1/-1">No open slots this day — try another date.</span>';
+    slotsEl.querySelectorAll('.slot').forEach((b) => b.addEventListener('click', () => {
+      slotsEl.querySelectorAll('.slot').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      selectedSlot = b.dataset.t;
+      updateButton();
+    }));
+  } catch (err) {
+    slotsEl.innerHTML = `<span class="muted">${esc(err.message)}</span>`;
+  }
+}
+
+function updateButton() {
+  const btn = document.getElementById('book-btn');
+  btn.disabled = !selectedSlot;
+  btn.textContent = selectedSlot ? `Request ${fmtTime(selectedSlot)} session` : 'Select a time';
+}
+
+async function book(e) {
+  e.preventDefault();
+  const alertEl = document.getElementById('book-alert');
+  if (!currentUser) {
+    location.href = `/login?mode=signup&role=customer&next=${encodeURIComponent(location.pathname + location.search)}`;
+    return;
+  }
+  if (currentUser.role !== 'customer') {
+    showAlert(alertEl, 'Trainer accounts cannot book sessions. Log in with a customer account to book.');
+    return;
+  }
+  try {
+    await api('/api/bookings', {
+      method: 'POST',
+      body: {
+        trainerId: Number(id),
+        workoutType: document.getElementById('workoutType').value,
+        date: document.getElementById('date').value,
+        time: selectedSlot,
+        notes: document.getElementById('notes').value,
+      },
+    });
+    showAlert(alertEl, `Request sent! ${trainer.name.split(' ')[0]} will confirm shortly. Track it in My bookings.`, 'ok');
+    document.getElementById('notes').value = '';
+    loadSlots();
+  } catch (err) {
+    showAlert(alertEl, err.message);
+    loadSlots();
+  }
+}
+
+(async () => {
+  await loadUser();
+  if (!id) { page.innerHTML = '<div class="empty">Trainer not found. <a href="/">Browse trainers</a></div>'; return; }
+  try {
+    const data = await api(`/api/trainers/${encodeURIComponent(id)}`);
+    trainer = data.trainer;
+    render(data);
+  } catch (err) {
+    page.innerHTML = `<div class="empty">${esc(err.message)}. <a href="/">Browse trainers</a></div>`;
+  }
+})();
+</script>
+</body>
+</html>

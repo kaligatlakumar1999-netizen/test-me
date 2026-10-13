@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — FitDirect</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="nav"><div class="container">
+  <a class="brand" href="/">Fit<span>Direct</span></a>
+  <div class="nav-links" id="nav-links"></div>
+</div></nav>
+
+<main class="container dash" id="dash"><div class="empty">Loading…</div></main>
+
+<script src="/js/common.js"></script>
+<script>
+const dash = document.getElementById('dash');
+
+function statusPill(s) {
+  return `<span class="pill status-${s}">${s[0].toUpperCase() + s.slice(1)}</span>`;
+}
+
+function sortBookings(list) {
+  const today = todayIso();
+  const upcoming = list.filter((b) => b.date >= today && (b.status === 'pending' || b.status === 'confirmed'))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const past = list.filter((b) => !upcoming.includes(b));
+  return { upcoming, past };
+}
+
+async function changeStatus(id, status, reload) {
+  if (status === 'cancelled' && !confirm('Cancel this session?')) return;
+  try {
+    await api(`/api/bookings/${id}`, { method: 'PATCH', body: { status } });
+    reload();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// ---------------- customer ----------------
+
+async function renderCustomer() {
+  const { bookings } = await api('/api/me/bookings');
+  const { upcoming, past } = sortBookings(bookings);
+
+  const row = (b) => `
+    <div class="booking">
+      <div class="booking-top">
+        <strong><a href="/trainer?id=${b.trainerId}">${esc(b.trainerName)}</a> · ${esc(b.workoutType)}</strong>
+        ${statusPill(b.status)}
+      </div>
+      <div class="muted" style="font-size:14px">${fmtDate(b.date)} at ${fmtTime(b.time)} · ${money(b.price)} · 📍 ${esc(b.location)}</div>
+      ${b.trainerPhone ? `<div style="font-size:14px">📞 <a href="tel:${esc(b.trainerPhone)}">${esc(b.trainerPhone)}</a></div>` : ''}
+      ${b.status === 'pending' ? '<div class="hint">Waiting for the trainer to confirm. Their contact details appear once confirmed.</div>' : ''}
+      ${b.review ? `<div style="font-size:14px">Your review: ${stars(b.review.rating)} ${esc(b.review.comment)}</div>` : ''}
+      <div class="actions">
+        ${b.canCancel ? `<button class="btn btn-sm btn-danger" data-cancel="${b.id}">Cancel</button>` : ''}
+        ${b.canReview ? `<button class="btn btn-sm btn-primary" data-review="${b.id}">Leave a review</button>` : ''}
+      </div>
+      <form class="review-form hidden" data-form="${b.id}">
+        <div class="field" style="margin:8px 0">
+          <div class="star-input" role="radiogroup" aria-label="Rating">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-star="${n}" aria-label="${n} star">★</button>`).join('')}</div>
+        </div>
+        <div class="field"><textarea name="comment" maxlength="2000" placeholder="How was your session?"></textarea></div>
+        <button class="btn btn-primary btn-sm">Submit review</button>
+      </form>
+    </div>`;
+
+  dash.innerHTML = `
+    <h1>Hi ${esc(currentUser.name.split(' ')[0])} 👋</h1>
+    <p class="muted">Your sessions with independent trainers.</p>
+    <div class="dash-grid">
+      <div class="card">
+        <h2>Upcoming</h2>
+        ${upcoming.map(row).join('') || '<div class="empty">No upcoming sessions. <a href="/">Find a trainer</a></div>'}
+      </div>
+      <div class="card">
+        <h2>Past &amp; cancelled</h2>
+        ${past.map(row).join('') || '<div class="empty">Nothing here yet.</div>'}
+      </div>
+    </div>`;
+
+  dash.querySelectorAll('[data-cancel]').forEach((b) => b.onclick = () => changeStatus(b.dataset.cancel, 'cancelled', renderCustomer));
+  dash.querySelectorAll('[data-review]').forEach((b) => b.onclick = () => {
+    dash.querySelector(`[data-form="${b.dataset.review}"]`).classList.remove('hidden');
+    b.classList.add('hidden');
+  });
+  dash.querySelectorAll('.review-form').forEach((f) => {
+    let rating = 0;
+    const btns = f.querySelectorAll('[data-star]');
+    btns.forEach((s) => s.onclick = () => {
+      rating = Number(s.dataset.star);
+      btns.forEach((x) => x.classList.toggle('on', Number(x.dataset.star) <= rating));
+    });
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!rating) return alert('Please choose a star rating');
+      try {
+        await api('/api/reviews', { method: 'POST', body: { bookingId: Number(f.dataset.form), rating, comment: f.comment.value } });
+        renderCustomer();
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+  });
+}
+
+// ---------------- trainer ----------------
+
+async function renderTrainer() {
+  const [{ trainer: t, availability }, { bookings }, meta] = await Promise.all([
+    api('/api/me/trainer-profile'),
+    api('/api/me/bookings'),
+    api('/api/meta'),
+  ]);
+  const { upcoming, past } = sortBookings(bookings);
+  const pending = upcoming.filter((b) => b.status === 'pending').length;
+  const completed = bookings.filter((b) => b.status === 'completed');
+  const earned = completed.reduce((s, b) => s + b.price, 0);
+  const welcome = new URLSearchParams(location.search).has('welcome');
+
+  const row = (b) => `
+    <div class="booking">
+      <div class="booking-top">
+        <strong>${esc(b.customerName)} · ${esc(b.workoutType)}</strong>
+        ${statusPill(b.status)}
+      </div>
+      <div class="muted" style="font-size:14px">${fmtDate(b.date)} at ${fmtTime(b.time)} · ${money(b.price)} · <a href="mailto:${esc(b.customerEmail)}">${esc(b.customerEmail)}</a></div>
+      ${b.notes ? `<div style="font-size:14px">“${esc(b.notes)}”</div>` : ''}
+      ${b.review ? `<div style="font-size:14px">Review: ${stars(b.review.rating)} ${esc(b.review.comment)}</div>` : ''}
+      <div class="actions">
+        ${b.canConfirm ? `<button class="btn btn-sm btn-primary" data-act="confirmed" data-id="${b.id}">Confirm</button>` : ''}
+        ${b.canComplete ? `<button class="btn btn-sm" data-act="completed" data-id="${b.id}">Mark completed</button>` : ''}
+        ${b.canCancel ? `<button class="btn btn-sm btn-danger" data-act="cancelled" data-id="${b.id}">${b.status === 'pending' ? 'Decline' : 'Cancel'}</button>` : ''}
+      </div>
+    </div>`;
+
+  const availRow = (a = { weekday: 1, start: '07:00', end: '10:00' }) => `
+    <div class="avail-row">
+      <select name="weekday">${WEEKDAYS.map((d, i) => `<option value="${i}" ${i === a.weekday ? 'selected' : ''}>${d}</option>`).join('')}</select>
+      <input type="time" name="start" value="${a.start}" step="1800" required>
+      <input type="time" name="end" value="${a.end}" step="1800" required>
+      <button type="button" class="btn btn-sm btn-danger" data-remove aria-label="Remove">✕</button>
+    </div>`;
+
+  dash.innerHTML = `
+    ${welcome ? '<div class="alert alert-ok">Welcome to FitDirect! Fill in your profile and weekly hours, then tick “Publish” so customers can find and book you.</div>' : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><h1>Your training business</h1><p class="muted" style="margin:0">You keep 100% of every session.</p></div>
+      <a class="btn" href="/trainer?id=${t.id}">View public profile ↗</a>
+    </div>
+    <div class="stats section">
+      <div class="card stat"><div class="num">${pending}</div><div class="lbl">Requests to confirm</div></div>
+      <div class="card stat"><div class="num">${upcoming.length}</div><div class="lbl">Upcoming sessions</div></div>
+      <div class="card stat"><div class="num">${t.reviewCount ? `${t.avgRating}★` : '—'}</div><div class="lbl">${t.reviewCount} reviews</div></div>
+      <div class="card stat"><div class="num">${money(earned)}</div><div class="lbl">Earned from ${completed.length} sessions</div></div>
+    </div>
+
+    <div class="dash-grid">
+      <div>
+        <div class="card">
+          <h2>Upcoming sessions</h2>
+          ${upcoming.map(row).join('') || '<div class="empty">No upcoming sessions yet.</div>'}
+        </div>
+        <div class="card section">
+          <h2>Past sessions</h2>
+          ${past.map(row).join('') || '<div class="empty">Nothing here yet.</div>'}
+        </div>
+      </div>
+
+      <div>
+        <form class="card" id="profile">
+          <h2>Profile</h2>
+          <div id="profile-alert" class="hidden"></div>
+          <label class="check" style="margin-bottom:16px"><input type="checkbox" name="published" ${t.published ? 'checked' : ''}> <span>Publish my profile so customers can find &amp; book me</span></label>
+          <div class="row">
+            <div class="field"><label for="p-name">Name</label><input id="p-name" name="pname" value="${esc(t.name)}" required maxlength="80"></div>
+            <div class="field"><label for="p-price">Price per session (₹)</label><input id="p-price" name="price" type="number" min="0" value="${t.pricePerSession || ''}"></div>
+          </div>
+          <div class="field"><label for="p-headline">Headline</label><input id="p-headline" name="headline" value="${esc(t.headline)}" maxlength="120" placeholder="e.g. Strength coach for busy professionals"></div>
+          <div class="row">
+            <div class="field"><label for="p-city">City</label><input id="p-city" name="city" value="${esc(t.city)}" maxlength="80"></div>
+            <div class="field"><label for="p-area">Neighbourhood / area</label><input id="p-area" name="area" value="${esc(t.area)}" maxlength="120"></div>
+          </div>
+          <div class="field"><label for="p-bio">About you</label><textarea id="p-bio" name="bio" maxlength="3000" placeholder="Your story, training style, who you help best…">${esc(t.bio)}</textarea></div>
+          <div class="field">
+            <label>Workouts you offer</label>
+            <div class="check-grid">${meta.workoutTypes.map((w) => `<label class="check"><input type="checkbox" name="workout" value="${esc(w)}" ${t.workoutTypes.includes(w) ? 'checked' : ''}>${esc(w)}</label>`).join('')}</div>
+          </div>
+          <div class="field">
+            <label>Where you train</label>
+            <div class="check-grid">${meta.sessionModes.map((m) => `<label class="check"><input type="checkbox" name="mode" value="${esc(m)}" ${t.sessionModes.includes(m) ? 'checked' : ''}>${esc(m)}</label>`).join('')}</div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="p-years">Years of experience</label><input id="p-years" name="years" type="number" min="0" max="70" value="${t.yearsExperience}"></div>
+            <div class="field"><label for="p-phone">Phone <span class="hint">(shared after you confirm)</span></label><input id="p-phone" name="phone" value="${esc(t.phone)}" maxlength="30"></div>
+          </div>
+          <div class="field"><label for="p-certs">Certifications</label><input id="p-certs" name="certs" value="${esc(t.certifications)}" maxlength="500"></div>
+          <div class="row">
+            <div class="field"><label for="p-photo">Photo URL</label><input id="p-photo" name="photo" type="url" value="${esc(t.photoUrl)}" placeholder="https://…"></div>
+            <div class="field"><label for="p-ig">Instagram handle</label><input id="p-ig" name="ig" value="${esc(t.instagram)}" maxlength="60" placeholder="@yourhandle"></div>
+          </div>
+          <button class="btn btn-primary">Save profile</button>
+        </form>
+
+        <form class="card section" id="avail">
+          <h2>Weekly hours</h2>
+          <p class="hint">Customers can book 60-minute sessions inside these windows.</p>
+          <div id="avail-alert" class="hidden"></div>
+          <div id="avail-rows">${availability.map(availRow).join('')}</div>
+          <div class="actions" style="margin-top:8px">
+            <button type="button" class="btn btn-sm" id="add-window">+ Add time window</button>
+            <button class="btn btn-primary btn-sm">Save hours</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+
+  dash.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => changeStatus(b.dataset.id, b.dataset.act, renderTrainer));
+
+  const rows = document.getElementById('avail-rows');
+  document.getElementById('add-window').onclick = () => rows.insertAdjacentHTML('beforeend', availRow());
+  rows.addEventListener('click', (e) => { if (e.target.closest('[data-remove]')) e.target.closest('.avail-row').remove(); });
+
+  document.getElementById('avail').onsubmit = async (e) => {
+    e.preventDefault();
+    const availability = [...rows.querySelectorAll('.avail-row')].map((r) => ({
+      weekday: Number(r.querySelector('[name=weekday]').value),
+      start: r.querySelector('[name=start]').value,
+      end: r.querySelector('[name=end]').value,
+    }));
+    try {
+      await api('/api/me/availability', { method: 'PUT', body: { availability } });
+      showAlert(document.getElementById('avail-alert'), 'Hours saved.', 'ok');
+    } catch (err) {
+      showAlert(document.getElementById('avail-alert'), err.message);
+    }
+  };
+
+  document.getElementById('profile').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const checked = (n) => [...f.querySelectorAll(`input[name=${n}]:checked`)].map((i) => i.value);
+    try {
+      await api('/api/me/trainer-profile', {
+        method: 'PUT',
+        body: {
+          name: f.pname.value,
+          headline: f.headline.value,
+          bio: f.bio.value,
+          city: f.city.value,
+          area: f.area.value,
+          pricePerSession: Number(f.price.value || 0),
+          yearsExperience: Number(f.years.value || 0),
+          phone: f.phone.value,
+          certifications: f.certs.value,
+          photoUrl: f.photo.value,
+          instagram: f.ig.value,
+          workoutTypes: checked('workout'),
+          sessionModes: checked('mode'),
+          published: f.published.checked,
+        },
+      });
+      showAlert(document.getElementById('profile-alert'), 'Profile saved.', 'ok');
+    } catch (err) {
+      showAlert(document.getElementById('profile-alert'), err.message);
+    }
+  };
+}
+
+(async () => {
+  const user = await loadUser();
+  if (!user) { location.href = '/login?next=/dashboard'; return; }
+  try {
+    await (user.role === 'trainer' ? renderTrainer() : renderCustomer());
+  } catch (err) {
+    dash.innerHTML = `<div class="alert alert-error">${esc(err.message)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>
